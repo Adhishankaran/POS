@@ -26,6 +26,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d3af689c-af0b-4fce-ba37-cb6066609426"
+      }
+    },
+    "owner": "adhishankaran"
   }
 }
