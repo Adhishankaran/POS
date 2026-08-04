@@ -5,18 +5,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Text as RNText,
 } from 'react-native';
 import {
-  Text,
   Surface,
   Button,
   Divider,
   ProgressBar,
   useTheme,
   Card,
-  SegmentedButtons,
   Menu,
-  Chip,
 } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppSelector } from '../store';
@@ -219,9 +217,7 @@ export const AnalyticsScreen: React.FC = () => {
       {/* Dropdown Filters Section */}
       <Surface style={styles.filterSection} elevation={2}>
         <View style={styles.filterHeader}>
-          <Text variant="titleMedium" style={styles.filterTitle}>
-            📅 Sales Filter Period
-          </Text>
+          <RNText style={styles.filterTitle}>📅 Sales Filter Period</RNText>
           <Button
             mode="contained-tonal"
             icon="file-excel-box"
@@ -246,7 +242,7 @@ export const AnalyticsScreen: React.FC = () => {
                 onPress={() => setYearMenuVisible(true)}
               >
                 <MaterialCommunityIcons name="calendar" size={18} color={theme.colors.primary} />
-                <Text style={styles.dropdownPickerText}>{yearLabel}</Text>
+                <RNText style={styles.dropdownPickerText}>{yearLabel}</RNText>
                 <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
               </TouchableOpacity>
             }
@@ -274,7 +270,7 @@ export const AnalyticsScreen: React.FC = () => {
                 onPress={() => setMonthMenuVisible(true)}
               >
                 <MaterialCommunityIcons name="calendar-month" size={18} color={theme.colors.primary} />
-                <Text style={styles.dropdownPickerText}>{monthLabel}</Text>
+                <RNText style={styles.dropdownPickerText}>{monthLabel}</RNText>
                 <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
               </TouchableOpacity>
             }
@@ -301,51 +297,51 @@ export const AnalyticsScreen: React.FC = () => {
         {/* Revenue */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#10B981', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
-            <Text style={styles.kpiLabel}>TOTAL REVENUE</Text>
+            <RNText style={styles.kpiLabel}>TOTAL REVENUE</RNText>
             <MaterialCommunityIcons name="currency-inr" size={20} color="#10B981" />
           </View>
-          <Text variant="headlineSmall" style={[styles.kpiValue, { color: '#10B981' }]}>
+          <RNText style={[styles.kpiValue, { color: '#10B981' }]}>
             {formatCurrency(analyticsData.totalRevenue, settings.currencySymbol)}
-          </Text>
-          <Text style={styles.kpiSubText}>{selectedPeriodText}</Text>
+          </RNText>
+          <RNText style={styles.kpiSubText}>{selectedPeriodText}</RNText>
         </Surface>
 
         {/* Orders */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#2563EB', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
-            <Text style={styles.kpiLabel}>TOTAL ORDERS</Text>
+            <RNText style={styles.kpiLabel}>TOTAL ORDERS</RNText>
             <MaterialCommunityIcons name="receipt" size={20} color="#2563EB" />
           </View>
-          <Text variant="headlineSmall" style={[styles.kpiValue, { color: '#2563EB' }]}>
+          <RNText style={[styles.kpiValue, { color: '#2563EB' }]}>
             {analyticsData.totalOrders}
-          </Text>
-          <Text style={styles.kpiSubText}>{analyticsData.totalItemsSold} items sold</Text>
+          </RNText>
+          <RNText style={styles.kpiSubText}>{analyticsData.totalItemsSold} items sold</RNText>
         </Surface>
 
         {/* Average Order Value */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#8B5CF6', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
-            <Text style={styles.kpiLabel}>AVG ORDER VALUE</Text>
+            <RNText style={styles.kpiLabel}>AVG ORDER VALUE</RNText>
             <MaterialCommunityIcons name="calculator" size={20} color="#8B5CF6" />
           </View>
-          <Text variant="titleLarge" style={[styles.kpiValue, { color: '#8B5CF6' }]}>
+          <RNText style={[styles.kpiValue, { color: '#8B5CF6' }]}>
             {formatCurrency(analyticsData.avgOrderValue, settings.currencySymbol)}
-          </Text>
-          <Text style={styles.kpiSubText}>Per customer bill</Text>
+          </RNText>
+          <RNText style={styles.kpiSubText}>Per customer bill</RNText>
         </Surface>
 
         {/* Tax & Discount */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
-            <Text style={styles.kpiLabel}>TAX & DISCOUNTS</Text>
+            <RNText style={styles.kpiLabel}>TAX & DISCOUNTS</RNText>
             <MaterialCommunityIcons name="percent" size={20} color="#F59E0B" />
           </View>
-          <Text variant="titleMedium" style={[styles.kpiValue, { color: '#F59E0B' }]}>
+          <RNText style={[styles.kpiValueSmall, { color: '#F59E0B' }]}>
             GST: {formatCurrency(analyticsData.totalGst, settings.currencySymbol)}
-          </Text>
-          <Text style={styles.kpiSubText}>
+          </RNText>
+          <RNText style={styles.kpiSubText}>
             Discount: {formatCurrency(analyticsData.totalDiscount, settings.currencySymbol)}
-          </Text>
+          </RNText>
         </Surface>
       </View>
 
@@ -354,16 +350,16 @@ export const AnalyticsScreen: React.FC = () => {
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="chart-bar" size={22} color={theme.colors.primary} />
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <RNText style={styles.sectionTitle}>
               Sales Trend Graph ({selectedPeriodText})
-            </Text>
+            </RNText>
           </View>
           <Divider style={{ marginVertical: 10 }} />
 
           {analyticsData.dailySalesGraph.length === 0 ? (
             <View style={styles.noGraphBox}>
               <MaterialCommunityIcons name="chart-bell-curve" size={32} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No sales recorded for this filter period.</Text>
+              <RNText style={styles.emptyText}>No sales recorded for this filter period.</RNText>
             </View>
           ) : (
             <View style={styles.graphContainer}>
@@ -376,9 +372,9 @@ export const AnalyticsScreen: React.FC = () => {
                     );
                     return (
                       <View key={idx} style={styles.barColumn}>
-                        <Text style={styles.barValueText}>
+                        <RNText style={styles.barValueText}>
                           {settings.currencySymbol}{Math.round(item.amount)}
-                        </Text>
+                        </RNText>
                         <View style={styles.barTrack}>
                           <View
                             style={[
@@ -393,7 +389,7 @@ export const AnalyticsScreen: React.FC = () => {
                             ]}
                           />
                         </View>
-                        <Text style={styles.barLabelText}>{item.day}</Text>
+                        <RNText style={styles.barLabelText}>{item.day}</RNText>
                       </View>
                     );
                   })}
@@ -409,14 +405,14 @@ export const AnalyticsScreen: React.FC = () => {
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="shape-outline" size={20} color={theme.colors.primary} />
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <RNText style={styles.sectionTitle}>
               Category Sales Share
-            </Text>
+            </RNText>
           </View>
           <Divider style={{ marginVertical: 8 }} />
 
           {analyticsData.categoryDistribution.length === 0 ? (
-            <Text style={styles.emptyText}>No category sales available.</Text>
+            <RNText style={styles.emptyText}>No category sales available.</RNText>
           ) : (
             analyticsData.categoryDistribution.map((cat) => {
               const percentage =
@@ -426,10 +422,10 @@ export const AnalyticsScreen: React.FC = () => {
               return (
                 <View key={cat.category} style={styles.categoryProgressRow}>
                   <View style={styles.catNameRow}>
-                    <Text style={styles.catName}>{cat.category}</Text>
-                    <Text style={styles.catVal}>
+                    <RNText style={styles.catName}>{cat.category}</RNText>
+                    <RNText style={styles.catVal}>
                       {formatCurrency(cat.revenue, settings.currencySymbol)} ({percentage.toFixed(1)}%)
-                    </Text>
+                    </RNText>
                   </View>
                   <ProgressBar
                     progress={percentage / 100}
@@ -448,62 +444,90 @@ export const AnalyticsScreen: React.FC = () => {
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="package-variant" size={20} color="#2563EB" />
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <RNText style={styles.sectionTitle}>
               Inventory Performance ({selectedPeriodText})
-            </Text>
+            </RNText>
           </View>
           <Divider style={{ marginVertical: 8 }} />
 
-          {/* Segmented Switch for Sold / Unsold */}
-          <SegmentedButtons
-            value={productTab}
-            onValueChange={(val) => setProductTab(val as 'sold' | 'unsold')}
-            buttons={[
-              {
-                value: 'sold',
-                label: `Sold (${analyticsData.soldProductsList.length})`,
-                icon: 'check-circle-outline',
-              },
-              {
-                value: 'unsold',
-                label: `Unsold (${analyticsData.unsoldProductsList.length})`,
-                icon: 'alert-circle-outline',
-              },
-            ]}
-            style={styles.segmentedBtn}
-          />
+          {/* High-Contrast Custom Switch for Sold / Unsold */}
+          <View style={styles.tabToggleRow}>
+            <TouchableOpacity
+              style={[
+                styles.tabToggleBtn,
+                productTab === 'sold' && styles.tabToggleActiveSold,
+              ]}
+              onPress={() => setProductTab('sold')}
+            >
+              <MaterialCommunityIcons
+                name="check-circle-outline"
+                size={18}
+                color={productTab === 'sold' ? '#FFFFFF' : '#059669'}
+              />
+              <RNText
+                style={[
+                  styles.tabToggleText,
+                  productTab === 'sold' ? styles.tabToggleTextActive : { color: '#059669' },
+                ]}
+              >
+                Sold ({analyticsData.soldProductsList.length})
+              </RNText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.tabToggleBtn,
+                productTab === 'unsold' && styles.tabToggleActiveUnsold,
+              ]}
+              onPress={() => setProductTab('unsold')}
+            >
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={18}
+                color={productTab === 'unsold' ? '#FFFFFF' : '#DC2626'}
+              />
+              <RNText
+                style={[
+                  styles.tabToggleText,
+                  productTab === 'unsold' ? styles.tabToggleTextActive : { color: '#DC2626' },
+                ]}
+              >
+                Unsold ({analyticsData.unsoldProductsList.length})
+              </RNText>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.productListContainer}>
             {productTab === 'sold' ? (
               analyticsData.soldProductsList.length === 0 ? (
-                <Text style={styles.emptyText}>No products were sold in this period.</Text>
+                <RNText style={styles.emptyText}>No products were sold in this period.</RNText>
               ) : (
                 analyticsData.soldProductsList.map((item, idx) => (
                   <View key={item.product.id} style={styles.productRow}>
                     <View style={styles.prodRankBadge}>
-                      <Text style={styles.prodRankText}>#{idx + 1}</Text>
+                      <RNText style={styles.prodRankText}>#{idx + 1}</RNText>
                     </View>
 
                     <View style={styles.prodDetails}>
-                      <Text style={styles.prodName}>{item.product.name}</Text>
-                      <Text style={styles.prodSub}>
+                      <RNText style={styles.prodName}>{item.product.name}</RNText>
+                      <RNText style={styles.prodSub}>
                         Category: {item.product.category} | Sold: {item.qtySold} units
-                      </Text>
+                      </RNText>
                     </View>
 
                     <View style={styles.prodRightCol}>
-                      <Text style={styles.soldRevenue}>
+                      <RNText style={styles.soldRevenue}>
                         {formatCurrency(item.revenue, settings.currencySymbol)}
-                      </Text>
-                      <Chip compact style={styles.soldChip} textStyle={styles.soldChipText}>
-                        🟢 Sold
-                      </Chip>
+                      </RNText>
+                      <View style={styles.soldBadge}>
+                        <RNText style={styles.soldBadgeText}>🟢 Sold</RNText>
+                      </View>
                     </View>
                   </View>
                 ))
               )
             ) : analyticsData.unsoldProductsList.length === 0 ? (
-              <Text style={styles.emptyText}>🎉 Excellent! All products in store had sales in this period.</Text>
+              <RNText style={styles.emptyText}>🎉 Excellent! All products in store had sales in this period.</RNText>
             ) : (
               analyticsData.unsoldProductsList.map((prod) => (
                 <View key={prod.id} style={[styles.productRow, styles.unsoldRow]}>
@@ -512,15 +536,15 @@ export const AnalyticsScreen: React.FC = () => {
                   </View>
 
                   <View style={styles.prodDetails}>
-                    <Text style={styles.prodName}>{prod.name}</Text>
-                    <Text style={styles.prodSub}>
+                    <RNText style={styles.prodName}>{prod.name}</RNText>
+                    <RNText style={styles.prodSub}>
                       Category: {prod.category} | Price: {formatCurrency(prod.price, settings.currencySymbol)}
-                    </Text>
+                    </RNText>
                   </View>
 
-                  <Chip compact style={styles.unsoldChip} textStyle={styles.unsoldChipText}>
-                    🔴 0 Sales
-                  </Chip>
+                  <View style={styles.unsoldBadge}>
+                    <RNText style={styles.unsoldBadgeText}>🔴 0 Sales</RNText>
+                  </View>
                 </View>
               ))
             )}
@@ -553,6 +577,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   filterTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#0F172A',
   },
@@ -602,12 +627,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   kpiLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#64748B',
     letterSpacing: 0.5,
   },
   kpiValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginVertical: 4,
+  },
+  kpiValueSmall: {
+    fontSize: 15,
     fontWeight: 'bold',
     marginVertical: 4,
   },
@@ -625,6 +656,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
     marginLeft: 8,
     color: '#0F172A',
@@ -703,8 +735,34 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#E2E8F0',
   },
-  segmentedBtn: {
-    marginVertical: 8,
+  tabToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 10,
+  },
+  tabToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  tabToggleActiveSold: {
+    backgroundColor: '#059669',
+  },
+  tabToggleActiveUnsold: {
+    backgroundColor: '#DC2626',
+  },
+  tabToggleText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  tabToggleTextActive: {
+    color: '#FFFFFF',
   },
   productListContainer: {
     marginTop: 6,
@@ -712,15 +770,15 @@ const styles = StyleSheet.create({
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   unsoldRow: {
     backgroundColor: '#FEF2F2',
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    marginVertical: 4,
     borderBottomWidth: 0,
   },
   prodRankBadge: {
@@ -745,38 +803,43 @@ const styles = StyleSheet.create({
   },
   prodName: {
     fontWeight: 'bold',
-    fontSize: 13,
-    color: '#1E293B',
+    fontSize: 14,
+    color: '#0F172A',
   },
   prodSub: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#64748B',
+    marginTop: 2,
   },
   prodRightCol: {
     alignItems: 'flex-end',
   },
   soldRevenue: {
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 14,
     color: '#059669',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  soldChip: {
-    backgroundColor: '#D1FAE5',
-    height: 22,
+  soldBadge: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  soldChipText: {
-    fontSize: 10,
-    color: '#065F46',
+  soldBadgeText: {
+    fontSize: 12,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  unsoldChip: {
-    backgroundColor: '#FEE2E2',
-    height: 22,
+  unsoldBadge: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  unsoldChipText: {
-    fontSize: 10,
-    color: '#991B1B',
+  unsoldBadgeText: {
+    fontSize: 12,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
