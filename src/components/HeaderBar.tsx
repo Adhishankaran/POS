@@ -13,7 +13,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ title, subtitle }) => {
   const settings = useAppSelector((state) => state.settings.settings);
 
   return (
-    <Appbar.Header style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+    <Appbar.Header style={[styles.header, { backgroundColor: '#1E3A8A' }]}>
       <Appbar.Content
         title={<Text style={styles.title}>{title}</Text>}
         subtitle={

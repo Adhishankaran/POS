@@ -41,19 +41,20 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }
 }
 
-// Custom Material Design Theme
+// Custom Material Design Theme with Rich Vibrant Palette
 const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#1A237E', // Deep Indigo
+    primary: '#2563EB', // Vibrant Sapphire Blue
     onPrimary: '#FFFFFF',
-    primaryContainer: '#E8EAF6',
-    secondary: '#009688', // Teal
-    secondaryContainer: '#E0F2F1',
+    primaryContainer: '#DBEAFE',
+    secondary: '#10B981', // Emerald Green
+    secondaryContainer: '#D1FAE5',
+    tertiary: '#8B5CF6', // Violet
     surface: '#FFFFFF',
-    background: '#F5F7FA',
-    error: '#D32F2F',
+    background: '#F8FAFC', // Slate Clean Gray
+    error: '#EF4444',
   },
 };
 
@@ -84,7 +85,7 @@ export default function App() {
     <ReduxProvider store={store}>
       <PaperProvider theme={theme}>
         <SafeAreaProvider style={styles.rootContainer}>
-          <StatusBar style="light" backgroundColor="#1A237E" />
+          <StatusBar style="light" backgroundColor="#1E3A8A" />
           <AppContent />
         </SafeAreaProvider>
       </PaperProvider>

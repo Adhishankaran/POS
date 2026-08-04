@@ -4,6 +4,7 @@ import { useTheme } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BillingScreen } from '../screens/BillingScreen';
 import { ProductsScreen } from '../screens/ProductsScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { HeaderBar } from '../components/HeaderBar';
@@ -11,6 +12,7 @@ import { HeaderBar } from '../components/HeaderBar';
 export type RootTabParamList = {
   Billing: undefined;
   Products: undefined;
+  Analytics: undefined;
   History: undefined;
   Settings: undefined;
 };
@@ -30,6 +32,8 @@ export const TabNavigator: React.FC = () => {
                 ? 'POS Billing'
                 : route.name === 'Products'
                 ? 'Product Inventory'
+                : route.name === 'Analytics'
+                ? 'Sales Analytics'
                 : route.name === 'History'
                 ? 'Billing History'
                 : 'POS Settings'
@@ -37,14 +41,15 @@ export const TabNavigator: React.FC = () => {
           />
         ),
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: '#757575',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
-          height: 60,
+          borderTopColor: '#E2E8F0',
+          height: 64,
           paddingBottom: 8,
-          paddingTop: 4,
+          paddingTop: 6,
+          elevation: 10,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -70,6 +75,16 @@ export const TabNavigator: React.FC = () => {
           tabBarLabel: 'Products',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="package-variant-closed" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Analytics"
+        component={AnalyticsScreen}
+        options={{
+          tabBarLabel: 'Analytics',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
           ),
         }}
       />
