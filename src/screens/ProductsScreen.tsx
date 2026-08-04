@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+  Alert,
+  Text as RNText,
+} from 'react-native';
 import {
   Searchbar,
   Chip,
-  Text,
   Button,
   Card,
   IconButton,
@@ -115,32 +121,32 @@ export const ProductsScreen: React.FC = () => {
         renderItem={({ item }) => (
           <Card style={styles.card} mode="elevated">
             <Card.Content style={styles.cardContent}>
-              <View style={styles.rowTop}>
-                <View style={styles.nameAndBadgesCol}>
-                  <Text variant="titleMedium" style={styles.prodName}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.badgesRow}>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>{item.category}</Text>
-                    </View>
-                    <View style={styles.gstBadge}>
-                      <Text style={styles.gstBadgeText}>
-                        GST {item.gstRate !== undefined ? item.gstRate : 5}%
-                      </Text>
-                    </View>
+              {/* Product Header & Title */}
+              <View style={styles.cardHeader}>
+                <RNText style={styles.prodName}>{item.name}</RNText>
+
+                {/* Clear Contrast Badges */}
+                <View style={styles.badgesRow}>
+                  <View style={styles.categoryBadge}>
+                    <RNText style={styles.categoryBadgeText}>{item.category}</RNText>
+                  </View>
+
+                  <View style={styles.gstBadge}>
+                    <RNText style={styles.gstBadgeText}>
+                      GST {item.gstRate !== undefined ? item.gstRate : 5}%
+                    </RNText>
                   </View>
                 </View>
               </View>
 
               <View style={styles.rowBottom}>
                 <View style={styles.priceCol}>
-                  <Text variant="titleLarge" style={[styles.priceText, { color: theme.colors.primary }]}>
+                  <RNText style={[styles.priceText, { color: theme.colors.primary }]}>
                     {formatCurrency(item.price, settings.currencySymbol)}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.unitText}>
+                  </RNText>
+                  <RNText style={styles.unitText}>
                     per {item.unit}
-                  </Text>
+                  </RNText>
                 </View>
 
                 {/* Edit & Delete Actions */}
@@ -240,55 +246,47 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 10,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
   },
   cardContent: {
-    padding: 12,
+    padding: 14,
   },
-  rowTop: {
-    marginBottom: 8,
-  },
-  nameAndBadgesCol: {
-    flex: 1,
+  cardHeader: {
+    marginBottom: 12,
   },
   prodName: {
-    fontWeight: 'bold',
-    fontSize: 17,
+    fontWeight: '700',
+    fontSize: 18,
     color: '#0F172A',
     marginBottom: 8,
-    marginTop: 2,
   },
   badgesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    gap: 8,
   },
   categoryBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 6,
+    backgroundColor: '#1D4ED8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   categoryBadgeText: {
     fontSize: 13,
-    lineHeight: 18,
-    color: '#1E40AF',
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   gstBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginBottom: 6,
+    backgroundColor: '#D97706',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   gstBadgeText: {
     fontSize: 13,
-    lineHeight: 18,
-    color: '#B45309',
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   rowBottom: {
     flexDirection: 'row',
@@ -301,9 +299,11 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontWeight: 'bold',
+    fontSize: 18,
   },
   unitText: {
-    color: '#757575',
+    color: '#64748B',
+    fontSize: 13,
     marginLeft: 4,
   },
   actionCol: {
