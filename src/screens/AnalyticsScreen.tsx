@@ -9,18 +9,35 @@ import {
 import {
   Text,
   Surface,
-  Chip,
   Button,
   Divider,
   ProgressBar,
   useTheme,
   Card,
   SegmentedButtons,
+  Menu,
+  Chip,
 } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppSelector } from '../store';
 import { formatCurrency } from '../utils/constants';
 import { exportInvoicesToExcel } from '../services/excelService';
+
+const MONTH_LIST = [
+  { label: 'All Months', key: 'ALL' },
+  { label: 'January', key: '01' },
+  { label: 'February', key: '02' },
+  { label: 'March', key: '03' },
+  { label: 'April', key: '04' },
+  { label: 'May', key: '05' },
+  { label: 'June', key: '06' },
+  { label: 'July', key: '07' },
+  { label: 'August', key: '08' },
+  { label: 'September', key: '09' },
+  { label: 'October', key: '10' },
+  { label: 'November', key: '11' },
+  { label: 'December', key: '12' },
+];
 
 export const AnalyticsScreen: React.FC = () => {
   const theme = useTheme();
@@ -28,51 +45,53 @@ export const AnalyticsScreen: React.FC = () => {
   const products = useAppSelector((state) => state.billing.products);
   const settings = useAppSelector((state) => state.settings.settings);
 
-  const currentYear = new Date().getFullYear();
-  const currentMonthIdx = new Date().getMonth();
+  const currentYear = new Date().getFullYear().toString();
+  const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
 
-  // Generate 12 months for current year + All Time option
-  const monthOptions = useMemo(() => {
-    const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
+  // State for Year & Month Dropdowns
+  const [selectedYear, setSelectedYear] = useState<string>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
 
-    const list = [{ label: 'All Time', key: 'ALL' }];
+  const [yearMenuVisible, setYearMenuVisible] = useState(false);
+  const [monthMenuVisible, setMonthMenuVisible] = useState(false);
 
-    // Show months up to current month (or all 12 months)
-    for (let i = 0; i < 12; i++) {
-      const monthKey = `${currentYear}-${(i + 1).toString().padStart(2, '0')}`;
-      list.push({
-        label: `${monthNames[i]} ${currentYear}`,
-        key: monthKey,
-      });
-    }
-
-    return list;
-  }, [currentYear]);
-
-  // Default to current month key e.g. "2026-08" or "ALL"
-  const defaultMonthKey = `${currentYear}-${(currentMonthIdx + 1).toString().padStart(2, '0')}`;
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(defaultMonthKey);
   const [productTab, setProductTab] = useState<'sold' | 'unsold'>('sold');
   const [exportingExcel, setExportingExcel] = useState(false);
 
-  // Filter invoices for selected month
-  const filteredInvoices = useMemo(() => {
-    if (selectedMonthKey === 'ALL') return invoices;
+  // Available Years extracted from invoices + current/past years
+  const yearOptions = useMemo(() => {
+    const yearsSet = new Set<string>();
+    yearsSet.add(currentYear);
+    yearsSet.add((parseInt(currentYear) - 1).toString());
 
+    invoices.forEach((inv) => {
+      const dateObj = new Date(inv.timestamp);
+      if (!isNaN(dateObj.getTime())) {
+        yearsSet.add(dateObj.getFullYear().toString());
+      }
+    });
+
+    const sortedYears = Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+    return [{ label: 'All Years', key: 'ALL' }, ...sortedYears.map((y) => ({ label: y, key: y }))];
+  }, [invoices, currentYear]);
+
+  // Filter Invoices based on Year & Month Dropdowns
+  const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
       const dateObj = new Date(inv.timestamp);
       if (isNaN(dateObj.getTime())) return false;
-      const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}`;
-      return monthKey === selectedMonthKey;
-    });
-  }, [invoices, selectedMonthKey]);
 
-  // Analytics Metrics & Daily Trend Graph Data
+      const invYear = dateObj.getFullYear().toString();
+      const invMonth = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+
+      const matchesYear = selectedYear === 'ALL' || invYear === selectedYear;
+      const matchesMonth = selectedMonth === 'ALL' || invMonth === selectedMonth;
+
+      return matchesYear && matchesMonth;
+    });
+  }, [invoices, selectedYear, selectedMonth]);
+
+  // Compute Metrics & Daily Graph Data
   const analyticsData = useMemo(() => {
     const totalRevenue = filteredInvoices.reduce((sum, i) => sum + i.grandTotal, 0);
     const totalOrders = filteredInvoices.length;
@@ -84,7 +103,7 @@ export const AnalyticsScreen: React.FC = () => {
       0
     );
 
-    // Map sales by day of month for the Bar Graph
+    // Daily breakdown for graph
     const dailySalesMap = new Map<string, number>();
     filteredInvoices.forEach((inv) => {
       const dateObj = new Date(inv.timestamp);
@@ -92,8 +111,8 @@ export const AnalyticsScreen: React.FC = () => {
         ? `${dateObj.getDate()} ${dateObj.toLocaleString('en-US', { month: 'short' })}`
         : inv.date;
 
-      const currentDaySales = dailySalesMap.get(dayLabel) || 0;
-      dailySalesMap.set(dayLabel, currentDaySales + inv.grandTotal);
+      const prev = dailySalesMap.get(dayLabel) || 0;
+      dailySalesMap.set(dayLabel, prev + inv.grandTotal);
     });
 
     const dailySalesGraph = Array.from(dailySalesMap.entries()).map(([day, amount]) => ({
@@ -115,7 +134,7 @@ export const AnalyticsScreen: React.FC = () => {
       });
     });
 
-    // Categorize all store inventory products into Sold and Unsold
+    // Categorize Store Products -> Sold & Unsold Lists
     const soldProductsList: Array<{
       product: typeof products[0];
       qtySold: number;
@@ -137,7 +156,6 @@ export const AnalyticsScreen: React.FC = () => {
       }
     });
 
-    // Sort sold products by revenue descending
     soldProductsList.sort((a, b) => b.revenue - a.revenue);
 
     // Category Sales Distribution
@@ -167,26 +185,27 @@ export const AnalyticsScreen: React.FC = () => {
     };
   }, [filteredInvoices, products]);
 
+  const monthLabel = MONTH_LIST.find((m) => m.key === selectedMonth)?.label || 'All Months';
+  const yearLabel = selectedYear === 'ALL' ? 'All Years' : selectedYear;
+  const selectedPeriodText = `${monthLabel} ${selectedYear === 'ALL' ? '' : yearLabel}`.trim();
+
   const handleExportAnalyticsExcel = async () => {
     if (filteredInvoices.length === 0) {
-      Alert.alert('No Data', 'No sales invoices available for the selected month to export.');
+      Alert.alert('No Data', 'No sales invoices available for the selected period to export.');
       return;
     }
 
     try {
       setExportingExcel(true);
-      const selectedMonthLabel =
-        monthOptions.find((m) => m.key === selectedMonthKey)?.label || 'Report';
-
       const res = await exportInvoicesToExcel(
         filteredInvoices,
-        `POS_Analytics_${selectedMonthLabel.replace(/\s+/g, '_')}`,
+        `POS_Analytics_${selectedPeriodText.replace(/\s+/g, '_')}`,
         settings.exportFolderUri,
         true
       );
       Alert.alert(
         'Analytics Report Exported! 📊',
-        `Successfully generated Excel report for ${selectedMonthLabel}.\nFile: ${res.fileName}`
+        `Successfully generated Excel report for ${selectedPeriodText}.\nFile: ${res.fileName}`
       );
     } catch (e: any) {
       Alert.alert('Export Failed', e.message || 'Could not export analytics Excel.');
@@ -195,16 +214,13 @@ export const AnalyticsScreen: React.FC = () => {
     }
   };
 
-  const selectedMonthLabel =
-    monthOptions.find((m) => m.key === selectedMonthKey)?.label || 'All Time';
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Month Selection Bar */}
+      {/* Dropdown Filters Section */}
       <Surface style={styles.filterSection} elevation={2}>
         <View style={styles.filterHeader}>
           <Text variant="titleMedium" style={styles.filterTitle}>
-            📅 Select Sales Month
+            📅 Sales Filter Period
           </Text>
           <Button
             mode="contained-tonal"
@@ -214,35 +230,75 @@ export const AnalyticsScreen: React.FC = () => {
             loading={exportingExcel}
             labelStyle={styles.exportBtnText}
           >
-            Export Report
+            Export Excel
           </Button>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
-          {monthOptions.map((opt) => (
-            <Chip
-              key={opt.key}
-              selected={selectedMonthKey === opt.key}
-              onPress={() => setSelectedMonthKey(opt.key)}
-              style={[
-                styles.monthChip,
-                selectedMonthKey === opt.key && { backgroundColor: theme.colors.primary },
-              ]}
-              textStyle={{
-                color: selectedMonthKey === opt.key ? '#FFFFFF' : '#334155',
-                fontWeight: selectedMonthKey === opt.key ? 'bold' : '600',
-                fontSize: 12,
-              }}
-            >
-              {opt.label}
-            </Chip>
-          ))}
-        </ScrollView>
+        {/* Dropdown Controls Row */}
+        <View style={styles.dropdownsRow}>
+          {/* Year Dropdown */}
+          <Menu
+            visible={yearMenuVisible}
+            onDismiss={() => setYearMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                style={styles.dropdownPicker}
+                onPress={() => setYearMenuVisible(true)}
+              >
+                <MaterialCommunityIcons name="calendar" size={18} color={theme.colors.primary} />
+                <Text style={styles.dropdownPickerText}>{yearLabel}</Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
+              </TouchableOpacity>
+            }
+          >
+            {yearOptions.map((opt) => (
+              <Menu.Item
+                key={opt.key}
+                onPress={() => {
+                  setSelectedYear(opt.key);
+                  setYearMenuVisible(false);
+                }}
+                title={opt.label}
+                leadingIcon={selectedYear === opt.key ? 'check' : undefined}
+              />
+            ))}
+          </Menu>
+
+          {/* Month Dropdown */}
+          <Menu
+            visible={monthMenuVisible}
+            onDismiss={() => setMonthMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                style={styles.dropdownPicker}
+                onPress={() => setMonthMenuVisible(true)}
+              >
+                <MaterialCommunityIcons name="calendar-month" size={18} color={theme.colors.primary} />
+                <Text style={styles.dropdownPickerText}>{monthLabel}</Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
+              </TouchableOpacity>
+            }
+          >
+            <ScrollView style={{ maxHeight: 300 }}>
+              {MONTH_LIST.map((m) => (
+                <Menu.Item
+                  key={m.key}
+                  onPress={() => {
+                    setSelectedMonth(m.key);
+                    setMonthMenuVisible(false);
+                  }}
+                  title={m.label}
+                  leadingIcon={selectedMonth === m.key ? 'check' : undefined}
+                />
+              ))}
+            </ScrollView>
+          </Menu>
+        </View>
       </Surface>
 
-      {/* Overview KPI Cards */}
+      {/* KPI Summary Cards */}
       <View style={styles.kpiGrid}>
-        {/* Total Revenue */}
+        {/* Revenue */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#10B981', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>TOTAL REVENUE</Text>
@@ -251,10 +307,10 @@ export const AnalyticsScreen: React.FC = () => {
           <Text variant="headlineSmall" style={[styles.kpiValue, { color: '#10B981' }]}>
             {formatCurrency(analyticsData.totalRevenue, settings.currencySymbol)}
           </Text>
-          <Text style={styles.kpiSubText}>{selectedMonthLabel}</Text>
+          <Text style={styles.kpiSubText}>{selectedPeriodText}</Text>
         </Surface>
 
-        {/* Total Invoices */}
+        {/* Orders */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#2563EB', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>TOTAL ORDERS</Text>
@@ -266,7 +322,7 @@ export const AnalyticsScreen: React.FC = () => {
           <Text style={styles.kpiSubText}>{analyticsData.totalItemsSold} items sold</Text>
         </Surface>
 
-        {/* Avg Order Value */}
+        {/* Average Order Value */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#8B5CF6', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>AVG ORDER VALUE</Text>
@@ -278,7 +334,7 @@ export const AnalyticsScreen: React.FC = () => {
           <Text style={styles.kpiSubText}>Per customer bill</Text>
         </Surface>
 
-        {/* Tax & Discounts */}
+        {/* Tax & Discount */}
         <Surface style={[styles.kpiCard, { borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>TAX & DISCOUNTS</Text>
@@ -293,13 +349,13 @@ export const AnalyticsScreen: React.FC = () => {
         </Surface>
       </View>
 
-      {/* Simple Neat Daily Sales Bar Graph */}
+      {/* Neat Daily Sales Bar Graph */}
       <Card style={styles.cardSection} mode="elevated">
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="chart-bar" size={22} color={theme.colors.primary} />
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Sales Trend Graph ({selectedMonthLabel})
+              Sales Trend Graph ({selectedPeriodText})
             </Text>
           </View>
           <Divider style={{ marginVertical: 10 }} />
@@ -307,7 +363,7 @@ export const AnalyticsScreen: React.FC = () => {
           {analyticsData.dailySalesGraph.length === 0 ? (
             <View style={styles.noGraphBox}>
               <MaterialCommunityIcons name="chart-bell-curve" size={32} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No sales recorded for this month to display graph.</Text>
+              <Text style={styles.emptyText}>No sales recorded for this filter period.</Text>
             </View>
           ) : (
             <View style={styles.graphContainer}>
@@ -393,7 +449,7 @@ export const AnalyticsScreen: React.FC = () => {
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="package-variant" size={20} color="#2563EB" />
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Inventory Performance ({selectedMonthLabel})
+              Inventory Performance ({selectedPeriodText})
             </Text>
           </View>
           <Divider style={{ marginVertical: 8 }} />
@@ -405,12 +461,12 @@ export const AnalyticsScreen: React.FC = () => {
             buttons={[
               {
                 value: 'sold',
-                label: `Sold Products (${analyticsData.soldProductsList.length})`,
+                label: `Sold (${analyticsData.soldProductsList.length})`,
                 icon: 'check-circle-outline',
               },
               {
                 value: 'unsold',
-                label: `Unsold Products (${analyticsData.unsoldProductsList.length})`,
+                label: `Unsold (${analyticsData.unsoldProductsList.length})`,
                 icon: 'alert-circle-outline',
               },
             ]}
@@ -494,7 +550,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   filterTitle: {
     fontWeight: 'bold',
@@ -504,12 +560,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  monthScroll: {
+  dropdownsRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  monthChip: {
-    marginRight: 6,
-    height: 34,
+  dropdownPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    width: '48.5%',
+  },
+  dropdownPickerText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    flex: 1,
+    marginLeft: 6,
   },
   kpiGrid: {
     flexDirection: 'row',
