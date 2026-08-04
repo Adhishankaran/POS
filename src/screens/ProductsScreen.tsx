@@ -121,12 +121,14 @@ export const ProductsScreen: React.FC = () => {
                     {item.name}
                   </Text>
                   <View style={styles.badgesRow}>
-                    <Chip compact style={styles.categoryChip} textStyle={styles.categoryChipText}>
-                      {item.category}
-                    </Chip>
-                    <Chip compact style={styles.gstChip} textStyle={styles.gstChipText}>
-                      GST {item.gstRate !== undefined ? item.gstRate : 5}%
-                    </Chip>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                    </View>
+                    <View style={styles.gstBadge}>
+                      <Text style={styles.gstBadgeText}>
+                        GST {item.gstRate !== undefined ? item.gstRate : 5}%
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -251,31 +253,38 @@ const styles = StyleSheet.create({
   },
   prodName: {
     fontWeight: 'bold',
-    color: '#212121',
-    marginBottom: 4,
+    fontSize: 16,
+    color: '#0F172A',
+    marginBottom: 6,
   },
   badgesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  categoryChip: {
-    backgroundColor: '#E8EAF6',
-    marginRight: 4,
-    height: 24,
+  categoryBadge: {
+    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 4,
   },
-  categoryChipText: {
-    fontSize: 10,
-    color: '#3F51B5',
+  categoryBadgeText: {
+    fontSize: 11,
+    color: '#3730A3',
     fontWeight: 'bold',
   },
-  gstChip: {
-    backgroundColor: '#FFF3E0',
-    height: 24,
+  gstBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 4,
   },
-  gstChipText: {
-    fontSize: 10,
-    color: '#E65100',
+  gstBadgeText: {
+    fontSize: 11,
+    color: '#D97706',
     fontWeight: 'bold',
   },
   rowBottom: {
