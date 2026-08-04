@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  FlatList,
 } from 'react-native';
 import {
   Text,
@@ -16,47 +15,50 @@ import {
   ProgressBar,
   useTheme,
   Card,
-  IconButton,
+  SegmentedButtons,
 } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppSelector } from '../store';
 import { formatCurrency } from '../utils/constants';
 import { exportInvoicesToExcel } from '../services/excelService';
-import { Invoice } from '../types';
 
 export const AnalyticsScreen: React.FC = () => {
   const theme = useTheme();
   const invoices = useAppSelector((state) => state.invoice.invoices);
+  const products = useAppSelector((state) => state.billing.products);
   const settings = useAppSelector((state) => state.settings.settings);
 
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('ALL');
+  const currentYear = new Date().getFullYear();
+  const currentMonthIdx = new Date().getMonth();
+
+  // Generate 12 months for current year + All Time option
+  const monthOptions = useMemo(() => {
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    const list = [{ label: 'All Time', key: 'ALL' }];
+
+    // Show months up to current month (or all 12 months)
+    for (let i = 0; i < 12; i++) {
+      const monthKey = `${currentYear}-${(i + 1).toString().padStart(2, '0')}`;
+      list.push({
+        label: `${monthNames[i]} ${currentYear}`,
+        key: monthKey,
+      });
+    }
+
+    return list;
+  }, [currentYear]);
+
+  // Default to current month key e.g. "2026-08" or "ALL"
+  const defaultMonthKey = `${currentYear}-${(currentMonthIdx + 1).toString().padStart(2, '0')}`;
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(defaultMonthKey);
+  const [productTab, setProductTab] = useState<'sold' | 'unsold'>('sold');
   const [exportingExcel, setExportingExcel] = useState(false);
 
-  // Extract unique months from invoice history (e.g. "Aug 2026", "Jul 2026")
-  const monthOptions = useMemo(() => {
-    const monthsMap = new Map<string, { label: string; key: string }>();
-
-    invoices.forEach((inv) => {
-      const dateObj = new Date(inv.timestamp);
-      if (!isNaN(dateObj.getTime())) {
-        const monthLabel = dateObj.toLocaleString('en-US', {
-          month: 'short',
-          year: 'numeric',
-        });
-        const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1)
-          .toString()
-          .padStart(2, '0')}`;
-        monthsMap.set(monthKey, { label: monthLabel, key: monthKey });
-      }
-    });
-
-    const sorted = Array.from(monthsMap.values()).sort((a, b) =>
-      b.key.localeCompare(a.key)
-    );
-    return [{ label: 'All Time', key: 'ALL' }, ...sorted];
-  }, [invoices]);
-
-  // Filter invoices based on selected month
+  // Filter invoices for selected month
   const filteredInvoices = useMemo(() => {
     if (selectedMonthKey === 'ALL') return invoices;
 
@@ -70,7 +72,7 @@ export const AnalyticsScreen: React.FC = () => {
     });
   }, [invoices, selectedMonthKey]);
 
-  // Analytics Metrics Calculations
+  // Analytics Metrics & Daily Trend Graph Data
   const analyticsData = useMemo(() => {
     const totalRevenue = filteredInvoices.reduce((sum, i) => sum + i.grandTotal, 0);
     const totalOrders = filteredInvoices.length;
@@ -82,47 +84,73 @@ export const AnalyticsScreen: React.FC = () => {
       0
     );
 
-    // Product performance map
-    const productMap = new Map<
-      string,
-      { id: string; name: string; category: string; qty: number; revenue: number }
-    >();
+    // Map sales by day of month for the Bar Graph
+    const dailySalesMap = new Map<string, number>();
+    filteredInvoices.forEach((inv) => {
+      const dateObj = new Date(inv.timestamp);
+      const dayLabel = !isNaN(dateObj.getTime())
+        ? `${dateObj.getDate()} ${dateObj.toLocaleString('en-US', { month: 'short' })}`
+        : inv.date;
 
-    // Category performance map
-    const categoryMap = new Map<string, { category: string; revenue: number; qty: number }>();
+      const currentDaySales = dailySalesMap.get(dayLabel) || 0;
+      dailySalesMap.set(dayLabel, currentDaySales + inv.grandTotal);
+    });
 
+    const dailySalesGraph = Array.from(dailySalesMap.entries()).map(([day, amount]) => ({
+      day,
+      amount,
+    }));
+
+    const maxDailySales = Math.max(...dailySalesGraph.map((d) => d.amount), 1);
+
+    // Sold products map (ID -> quantity sold & revenue)
+    const soldMap = new Map<string, { qty: number; revenue: number }>();
     filteredInvoices.forEach((inv) => {
       inv.items.forEach((item) => {
-        const prodId = item.product.id;
-        const itemRevenue = item.product.price * item.quantity;
-
-        // Product stats
-        const existingProd = productMap.get(prodId) || {
-          id: prodId,
-          name: item.product.name,
-          category: item.product.category,
-          qty: 0,
-          revenue: 0,
-        };
-        existingProd.qty += item.quantity;
-        existingProd.revenue += itemRevenue;
-        productMap.set(prodId, existingProd);
-
-        // Category stats
-        const catName = item.product.category || 'General';
-        const existingCat = categoryMap.get(catName) || {
-          category: catName,
-          revenue: 0,
-          qty: 0,
-        };
-        existingCat.revenue += itemRevenue;
-        existingCat.qty += item.quantity;
-        categoryMap.set(catName, existingCat);
+        const id = item.product.id;
+        const existing = soldMap.get(id) || { qty: 0, revenue: 0 };
+        existing.qty += item.quantity;
+        existing.revenue += item.product.price * item.quantity;
+        soldMap.set(id, existing);
       });
     });
 
-    const topProducts = Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue);
-    const topCategories = Array.from(categoryMap.values()).sort((a, b) => b.revenue - a.revenue);
+    // Categorize all store inventory products into Sold and Unsold
+    const soldProductsList: Array<{
+      product: typeof products[0];
+      qtySold: number;
+      revenue: number;
+    }> = [];
+
+    const unsoldProductsList: Array<typeof products[0]> = [];
+
+    products.forEach((p) => {
+      const soldData = soldMap.get(p.id);
+      if (soldData && soldData.qty > 0) {
+        soldProductsList.push({
+          product: p,
+          qtySold: soldData.qty,
+          revenue: soldData.revenue,
+        });
+      } else {
+        unsoldProductsList.push(p);
+      }
+    });
+
+    // Sort sold products by revenue descending
+    soldProductsList.sort((a, b) => b.revenue - a.revenue);
+
+    // Category Sales Distribution
+    const categoryMap = new Map<string, number>();
+    soldProductsList.forEach((sp) => {
+      const cat = sp.product.category || 'General';
+      const prev = categoryMap.get(cat) || 0;
+      categoryMap.set(cat, prev + sp.revenue);
+    });
+
+    const categoryDistribution = Array.from(categoryMap.entries())
+      .map(([category, revenue]) => ({ category, revenue }))
+      .sort((a, b) => b.revenue - a.revenue);
 
     return {
       totalRevenue,
@@ -131,10 +159,13 @@ export const AnalyticsScreen: React.FC = () => {
       totalGst,
       totalDiscount,
       totalItemsSold,
-      topProducts,
-      topCategories,
+      dailySalesGraph,
+      maxDailySales,
+      soldProductsList,
+      unsoldProductsList,
+      categoryDistribution,
     };
-  }, [filteredInvoices]);
+  }, [filteredInvoices, products]);
 
   const handleExportAnalyticsExcel = async () => {
     if (filteredInvoices.length === 0) {
@@ -169,11 +200,11 @@ export const AnalyticsScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Month Filter Selector */}
+      {/* Month Selection Bar */}
       <Surface style={styles.filterSection} elevation={2}>
         <View style={styles.filterHeader}>
           <Text variant="titleMedium" style={styles.filterTitle}>
-            📊 Sales Period Insights
+            📅 Select Sales Month
           </Text>
           <Button
             mode="contained-tonal"
@@ -198,7 +229,7 @@ export const AnalyticsScreen: React.FC = () => {
                 selectedMonthKey === opt.key && { backgroundColor: theme.colors.primary },
               ]}
               textStyle={{
-                color: selectedMonthKey === opt.key ? '#FFFFFF' : '#424242',
+                color: selectedMonthKey === opt.key ? '#FFFFFF' : '#334155',
                 fontWeight: selectedMonthKey === opt.key ? 'bold' : '600',
                 fontSize: 12,
               }}
@@ -209,76 +240,129 @@ export const AnalyticsScreen: React.FC = () => {
         </ScrollView>
       </Surface>
 
-      {/* KPI Cards Grid */}
+      {/* Overview KPI Cards */}
       <View style={styles.kpiGrid}>
         {/* Total Revenue */}
-        <Surface style={[styles.kpiCard, { borderLeftColor: '#10B981', borderLeftWidth: 5 }]} elevation={2}>
+        <Surface style={[styles.kpiCard, { borderLeftColor: '#10B981', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>TOTAL REVENUE</Text>
-            <MaterialCommunityIcons name="currency-inr" size={22} color="#10B981" />
+            <MaterialCommunityIcons name="currency-inr" size={20} color="#10B981" />
           </View>
-          <Text variant="headlineMedium" style={[styles.kpiValue, { color: '#10B981' }]}>
+          <Text variant="headlineSmall" style={[styles.kpiValue, { color: '#10B981' }]}>
             {formatCurrency(analyticsData.totalRevenue, settings.currencySymbol)}
           </Text>
-          <Text style={styles.kpiSubText}>
-            Month: <Text style={{ fontWeight: 'bold' }}>{selectedMonthLabel}</Text>
-          </Text>
+          <Text style={styles.kpiSubText}>{selectedMonthLabel}</Text>
         </Surface>
 
-        {/* Total Orders */}
-        <Surface style={[styles.kpiCard, { borderLeftColor: '#2563EB', borderLeftWidth: 5 }]} elevation={2}>
+        {/* Total Invoices */}
+        <Surface style={[styles.kpiCard, { borderLeftColor: '#2563EB', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
-            <Text style={styles.kpiLabel}>TOTAL INVOICES</Text>
-            <MaterialCommunityIcons name="receipt" size={22} color="#2563EB" />
+            <Text style={styles.kpiLabel}>TOTAL ORDERS</Text>
+            <MaterialCommunityIcons name="receipt" size={20} color="#2563EB" />
           </View>
-          <Text variant="headlineMedium" style={[styles.kpiValue, { color: '#2563EB' }]}>
+          <Text variant="headlineSmall" style={[styles.kpiValue, { color: '#2563EB' }]}>
             {analyticsData.totalOrders}
           </Text>
           <Text style={styles.kpiSubText}>{analyticsData.totalItemsSold} items sold</Text>
         </Surface>
 
         {/* Avg Order Value */}
-        <Surface style={[styles.kpiCard, { borderLeftColor: '#8B5CF6', borderLeftWidth: 5 }]} elevation={2}>
+        <Surface style={[styles.kpiCard, { borderLeftColor: '#8B5CF6', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>AVG ORDER VALUE</Text>
-            <MaterialCommunityIcons name="calculator" size={22} color="#8B5CF6" />
+            <MaterialCommunityIcons name="calculator" size={20} color="#8B5CF6" />
           </View>
-          <Text variant="headlineMedium" style={[styles.kpiValue, { color: '#8B5CF6' }]}>
+          <Text variant="titleLarge" style={[styles.kpiValue, { color: '#8B5CF6' }]}>
             {formatCurrency(analyticsData.avgOrderValue, settings.currencySymbol)}
           </Text>
-          <Text style={styles.kpiSubText}>Per billing receipt</Text>
+          <Text style={styles.kpiSubText}>Per customer bill</Text>
         </Surface>
 
-        {/* Total GST & Discounts */}
-        <Surface style={[styles.kpiCard, { borderLeftColor: '#F59E0B', borderLeftWidth: 5 }]} elevation={2}>
+        {/* Tax & Discounts */}
+        <Surface style={[styles.kpiCard, { borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]} elevation={2}>
           <View style={styles.kpiHeaderRow}>
             <Text style={styles.kpiLabel}>TAX & DISCOUNTS</Text>
-            <MaterialCommunityIcons name="percent" size={22} color="#F59E0B" />
+            <MaterialCommunityIcons name="percent" size={20} color="#F59E0B" />
           </View>
-          <Text variant="titleLarge" style={[styles.kpiValue, { color: '#F59E0B' }]}>
+          <Text variant="titleMedium" style={[styles.kpiValue, { color: '#F59E0B' }]}>
             GST: {formatCurrency(analyticsData.totalGst, settings.currencySymbol)}
           </Text>
           <Text style={styles.kpiSubText}>
-            Discount Given: {formatCurrency(analyticsData.totalDiscount, settings.currencySymbol)}
+            Discount: {formatCurrency(analyticsData.totalDiscount, settings.currencySymbol)}
           </Text>
         </Surface>
       </View>
 
-      {/* Category Performance Breakdown */}
+      {/* Simple Neat Daily Sales Bar Graph */}
+      <Card style={styles.cardSection} mode="elevated">
+        <Card.Content>
+          <View style={styles.sectionHeaderRow}>
+            <MaterialCommunityIcons name="chart-bar" size={22} color={theme.colors.primary} />
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Sales Trend Graph ({selectedMonthLabel})
+            </Text>
+          </View>
+          <Divider style={{ marginVertical: 10 }} />
+
+          {analyticsData.dailySalesGraph.length === 0 ? (
+            <View style={styles.noGraphBox}>
+              <MaterialCommunityIcons name="chart-bell-curve" size={32} color="#CBD5E1" />
+              <Text style={styles.emptyText}>No sales recorded for this month to display graph.</Text>
+            </View>
+          ) : (
+            <View style={styles.graphContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.barsRow}>
+                  {analyticsData.dailySalesGraph.map((item, idx) => {
+                    const heightPercent = Math.max(
+                      12,
+                      (item.amount / analyticsData.maxDailySales) * 100
+                    );
+                    return (
+                      <View key={idx} style={styles.barColumn}>
+                        <Text style={styles.barValueText}>
+                          {settings.currencySymbol}{Math.round(item.amount)}
+                        </Text>
+                        <View style={styles.barTrack}>
+                          <View
+                            style={[
+                              styles.barFill,
+                              {
+                                height: `${heightPercent}%`,
+                                backgroundColor:
+                                  item.amount === analyticsData.maxDailySales
+                                    ? '#10B981'
+                                    : theme.colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.barLabelText}>{item.day}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Category Performance Contribution */}
       <Card style={styles.cardSection} mode="elevated">
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="shape-outline" size={20} color={theme.colors.primary} />
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Category Sales Contribution
+              Category Sales Share
             </Text>
           </View>
           <Divider style={{ marginVertical: 8 }} />
 
-          {analyticsData.topCategories.length === 0 ? (
-            <Text style={styles.emptyText}>No sales recorded for this period.</Text>
+          {analyticsData.categoryDistribution.length === 0 ? (
+            <Text style={styles.emptyText}>No category sales available.</Text>
           ) : (
-            analyticsData.topCategories.map((cat) => {
+            analyticsData.categoryDistribution.map((cat) => {
               const percentage =
                 analyticsData.totalRevenue > 0
                   ? (cat.revenue / analyticsData.totalRevenue) * 100
@@ -303,57 +387,88 @@ export const AnalyticsScreen: React.FC = () => {
         </Card.Content>
       </Card>
 
-      {/* Top Performing Products */}
+      {/* Sold vs Unsold Products List Section */}
       <Card style={styles.cardSection} mode="elevated">
         <Card.Content>
           <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="trophy" size={20} color="#F59E0B" />
+            <MaterialCommunityIcons name="package-variant" size={20} color="#2563EB" />
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Top Selling Products
+              Inventory Performance ({selectedMonthLabel})
             </Text>
           </View>
           <Divider style={{ marginVertical: 8 }} />
 
-          {analyticsData.topProducts.length === 0 ? (
-            <Text style={styles.emptyText}>No product sales data available.</Text>
-          ) : (
-            analyticsData.topProducts.slice(0, 5).map((prod, index) => (
-              <View key={prod.id} style={styles.topProdRow}>
-                <View
-                  style={[
-                    styles.rankBadge,
-                    {
-                      backgroundColor:
-                        index === 0 ? '#FEF3C7' : index === 1 ? '#E0E7FF' : '#F3F4F6',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.rankText,
-                      {
-                        color:
-                          index === 0 ? '#D97706' : index === 1 ? '#4338CA' : '#4B5563',
-                      },
-                    ]}
-                  >
-                    #{index + 1}
-                  </Text>
-                </View>
+          {/* Segmented Switch for Sold / Unsold */}
+          <SegmentedButtons
+            value={productTab}
+            onValueChange={(val) => setProductTab(val as 'sold' | 'unsold')}
+            buttons={[
+              {
+                value: 'sold',
+                label: `Sold Products (${analyticsData.soldProductsList.length})`,
+                icon: 'check-circle-outline',
+              },
+              {
+                value: 'unsold',
+                label: `Unsold Products (${analyticsData.unsoldProductsList.length})`,
+                icon: 'alert-circle-outline',
+              },
+            ]}
+            style={styles.segmentedBtn}
+          />
 
-                <View style={styles.prodDetails}>
-                  <Text style={styles.prodName}>{prod.name}</Text>
-                  <Text style={styles.prodMeta}>
-                    Category: {prod.category} | Qty Sold: {prod.qty}
-                  </Text>
-                </View>
+          <View style={styles.productListContainer}>
+            {productTab === 'sold' ? (
+              analyticsData.soldProductsList.length === 0 ? (
+                <Text style={styles.emptyText}>No products were sold in this period.</Text>
+              ) : (
+                analyticsData.soldProductsList.map((item, idx) => (
+                  <View key={item.product.id} style={styles.productRow}>
+                    <View style={styles.prodRankBadge}>
+                      <Text style={styles.prodRankText}>#{idx + 1}</Text>
+                    </View>
 
-                <Text style={styles.prodRevenue}>
-                  {formatCurrency(prod.revenue, settings.currencySymbol)}
-                </Text>
-              </View>
-            ))
-          )}
+                    <View style={styles.prodDetails}>
+                      <Text style={styles.prodName}>{item.product.name}</Text>
+                      <Text style={styles.prodSub}>
+                        Category: {item.product.category} | Sold: {item.qtySold} units
+                      </Text>
+                    </View>
+
+                    <View style={styles.prodRightCol}>
+                      <Text style={styles.soldRevenue}>
+                        {formatCurrency(item.revenue, settings.currencySymbol)}
+                      </Text>
+                      <Chip compact style={styles.soldChip} textStyle={styles.soldChipText}>
+                        🟢 Sold
+                      </Chip>
+                    </View>
+                  </View>
+                ))
+              )
+            ) : analyticsData.unsoldProductsList.length === 0 ? (
+              <Text style={styles.emptyText}>🎉 Excellent! All products in store had sales in this period.</Text>
+            ) : (
+              analyticsData.unsoldProductsList.map((prod) => (
+                <View key={prod.id} style={[styles.productRow, styles.unsoldRow]}>
+                  <View style={styles.unsoldIconBox}>
+                    <MaterialCommunityIcons name="package-variant-closed-remove" size={22} color="#EF4444" />
+                  </View>
+
+                  <View style={styles.prodDetails}>
+                    <Text style={styles.prodName}>{prod.name}</Text>
+                    <Text style={styles.prodSub}>
+                      Category: {prod.category} | Price: {formatCurrency(prod.price, settings.currencySymbol)}
+                    </Text>
+                  </View>
+
+                  <Chip compact style={styles.unsoldChip} textStyle={styles.unsoldChipText}>
+                    🔴 0 Sales
+                  </Chip>
+                </View>
+              ))
+            )}
+          </View>
         </Card.Content>
       </Card>
     </ScrollView>
@@ -383,7 +498,7 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: '#0F172A',
   },
   exportBtnText: {
     fontSize: 11,
@@ -415,7 +530,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   kpiLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#64748B',
     letterSpacing: 0.5,
@@ -442,11 +557,56 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#0F172A',
   },
+  noGraphBox: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
   emptyText: {
     textAlign: 'center',
     color: '#94A3B8',
     marginVertical: 12,
     fontStyle: 'italic',
+    fontSize: 13,
+  },
+  graphContainer: {
+    marginVertical: 8,
+  },
+  barsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    minHeight: 150,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
+  },
+  barColumn: {
+    alignItems: 'center',
+    marginRight: 14,
+    width: 48,
+  },
+  barValueText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#475569',
+    marginBottom: 4,
+  },
+  barTrack: {
+    width: 22,
+    height: 110,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barFill: {
+    width: '100%',
+    borderRadius: 6,
+  },
+  barLabelText: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 6,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   categoryProgressRow: {
     marginVertical: 6,
@@ -471,38 +631,80 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#E2E8F0',
   },
-  topProdRow: {
+  segmentedBtn: {
+    marginVertical: 8,
+  },
+  productListContainer: {
+    marginTop: 6,
+  },
+  productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 6,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  rankBadge: {
-    width: 32,
-    height: 32,
+  unsoldRow: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
     borderRadius: 8,
+    marginVertical: 3,
+    borderBottomWidth: 0,
+  },
+  prodRankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#E0E7FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
-  rankText: {
+  prodRankText: {
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 11,
+    color: '#3730A3',
+  },
+  unsoldIconBox: {
+    marginRight: 10,
   },
   prodDetails: {
     flex: 1,
   },
   prodName: {
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
     color: '#1E293B',
   },
-  prodMeta: {
+  prodSub: {
     fontSize: 11,
     color: '#64748B',
   },
-  prodRevenue: {
+  prodRightCol: {
+    alignItems: 'flex-end',
+  },
+  soldRevenue: {
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
     color: '#059669',
+    marginBottom: 2,
+  },
+  soldChip: {
+    backgroundColor: '#D1FAE5',
+    height: 22,
+  },
+  soldChipText: {
+    fontSize: 10,
+    color: '#065F46',
+    fontWeight: 'bold',
+  },
+  unsoldChip: {
+    backgroundColor: '#FEE2E2',
+    height: 22,
+  },
+  unsoldChipText: {
+    fontSize: 10,
+    color: '#991B1B',
+    fontWeight: 'bold',
   },
 });

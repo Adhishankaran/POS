@@ -116,16 +116,18 @@ export const ProductsScreen: React.FC = () => {
           <Card style={styles.card} mode="elevated">
             <Card.Content style={styles.cardContent}>
               <View style={styles.rowTop}>
-                <Text variant="titleMedium" style={styles.prodName}>
-                  {item.name}
-                </Text>
-                <View style={styles.badgesRow}>
-                  <Chip compact style={styles.categoryChip} textStyle={styles.categoryChipText}>
-                    {item.category}
-                  </Chip>
-                  <Chip compact style={styles.gstChip} textStyle={styles.gstChipText}>
-                    GST: {item.gstRate !== undefined ? item.gstRate : 5}%
-                  </Chip>
+                <View style={styles.nameAndBadgesCol}>
+                  <Text variant="titleMedium" style={styles.prodName}>
+                    {item.name}
+                  </Text>
+                  <View style={styles.badgesRow}>
+                    <Chip compact style={styles.categoryChip} textStyle={styles.categoryChipText}>
+                      {item.category}
+                    </Chip>
+                    <Chip compact style={styles.gstChip} textStyle={styles.gstChipText}>
+                      GST {item.gstRate !== undefined ? item.gstRate : 5}%
+                    </Chip>
+                  </View>
                 </View>
               </View>
 
@@ -242,19 +244,20 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   rowTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  nameAndBadgesCol: {
+    flex: 1,
   },
   prodName: {
     fontWeight: 'bold',
     color: '#212121',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
   },
   badgesRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   categoryChip: {
     backgroundColor: '#E8EAF6',
