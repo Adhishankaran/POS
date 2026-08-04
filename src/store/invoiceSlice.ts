@@ -29,7 +29,8 @@ export const createInvoiceAsync = createAsyncThunk(
       const report = await exportInvoicesToExcel(
         [invoice],
         `Invoice_${invoice.invoiceNumber}`,
-        exportFolderUri
+        exportFolderUri,
+        false
       );
       invoice.excelSavedPath = report.filePath;
     } catch (e) {

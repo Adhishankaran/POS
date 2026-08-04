@@ -124,7 +124,8 @@ export const HistoryScreen: React.FC = () => {
       const res = await exportInvoicesToExcel(
         invoices,
         'Adhi_Stores_MasterSalesLog',
-        activeFolderUri
+        activeFolderUri,
+        true
       );
       const msg = `Excel file created in ${folderName || res.folderName}!\nFile: ${res.fileName}`;
       setStatusMsg(`Saved to: ${folderName || res.folderName}`);

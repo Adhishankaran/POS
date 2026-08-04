@@ -64,7 +64,8 @@ export const requestFolderAccessPermission = async (): Promise<{
 export const exportInvoicesToExcel = async (
   invoices: Invoice[],
   customTitle: string = 'Adhi_Stores_Sales',
-  customFolderUri?: string
+  customFolderUri?: string,
+  shouldShare: boolean = false
 ): Promise<ExcelExportReport> => {
   const now = new Date();
   const year = now.getFullYear();
@@ -189,7 +190,7 @@ export const exportInvoicesToExcel = async (
       encoding: 'base64',
     });
 
-    if (await Sharing.isAvailableAsync()) {
+    if (shouldShare && (await Sharing.isAvailableAsync())) {
       await Sharing.shareAsync(filePath, {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         dialogTitle: `Export Adhi Stores Excel - ${fileName}`,

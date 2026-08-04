@@ -28,7 +28,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     try {
       setExportingExcel(true);
       setStatusMsg(null);
-      const res = await exportInvoicesToExcel([invoice], `Adhi_Stores_Invoice_${invoice.invoiceNumber}`);
+      const res = await exportInvoicesToExcel(
+        [invoice],
+        `Adhi_Stores_Invoice_${invoice.invoiceNumber}`,
+        undefined,
+        true
+      );
       setStatusMsg(`Saved Excel: ${res.fileName}`);
     } catch (e: any) {
       setStatusMsg(`Excel error: ${e.message || e}`);
